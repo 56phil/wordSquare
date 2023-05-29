@@ -65,6 +65,5 @@ The program requires the following C++ libraries:
 ### Notes
 
 - The program uses a pseudorandom number generator to determine the sorting option for the word list if no command-line argument is provided.
-- The program assumes that the input file contains a list of five-letter words, with each word on a separate line.
 
 Feel free to explore the source code for more details and customization options.
