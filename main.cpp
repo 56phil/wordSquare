@@ -177,7 +177,7 @@ void search(std::vector<Word> &vWords, vSol &vResults) {
           if (check3Sets(a, b, c)) {
             for (auto itd(itc + 1); itd != vWords.end(); itd++) {
               const auto d(itd->getLetters());
-              if (check2Sets(d, c) && check2Sets(d, b) && check2Sets(d, a)) {
+              if (check4Sets(a,b,c,d)) {
                 for (auto ite(itd + 1); ite != vWords.end(); ite++) {
                   check5Words(*ita, *itb, *itc, *itd, *ite, vResults);
                 }
@@ -218,7 +218,7 @@ bool check2Sets(const std::unordered_set<int> a,
                 const std::unordered_set<int> b) {
   std::unordered_set<int> unionSet(a.begin(), a.end());
   unionSet.insert(b.begin(), b.end());
-  return unionSet.size() == (a.size() + b.size());
+  return unionSet.size() == 10; 
 }
 
 /********************************************************************************
@@ -236,7 +236,7 @@ bool check3Sets(const std::unordered_set<int> a,
   std::unordered_set<int> unionSet(a.begin(), a.end());
   unionSet.insert(b.begin(), b.end());
   unionSet.insert(c.begin(), c.end());
-  return unionSet.size() == (a.size() + b.size()) + c.size();
+  return unionSet.size() == 15;
 }
 
 /********************************************************************************
@@ -256,7 +256,7 @@ bool check4Sets(const std::unordered_set<int> a,
   unionSet.insert(b.begin(), b.end());
   unionSet.insert(c.begin(), c.end());
   unionSet.insert(d.begin(), d.end());
-  return unionSet.size() == a.size() + b.size() + c.size() + d.size();
+  return unionSet.size() == 20;
 }
 
 /********************************************************************************
@@ -283,8 +283,7 @@ void check5Words(const Word &a, const Word &b, const Word &c, const Word &d,
   unionSet.insert(d0.begin(), d0.end());
   unionSet.insert(e0.begin(), e0.end());
 
-  if (unionSet.size() ==
-      a0.size() + b0.size() + c0.size() + d0.size() + e0.size()) {
+  if (unionSet.size() == 25) {
     Solution tmp(a, b, c, d, e);
     solutions.emplace_back(tmp);
 
