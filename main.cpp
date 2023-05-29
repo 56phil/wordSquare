@@ -13,6 +13,7 @@
 #include <ostream>
 #include <random>
 #include <sstream>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -110,6 +111,7 @@ void format_steady_clock_duration(std::string &,
                                   const steady_clock::time_point &,
                                   const bool &b = false);
 void formatTime(std::string &, bool = false, bool = true);
+void getData(const std::string &);
 void getFreqs(charMap &, const std::string &);
 void initilzation(const int &, char *[], std::vector<Word> &v);
 void search(std::vector<Word> &, vSol &);
@@ -214,10 +216,9 @@ void getFreqs(charMap &freqMap, const std::string &word) {
 
 bool check2Sets(const std::unordered_set<int> a,
                 const std::unordered_set<int> b) {
-  std::unordered_set<int> tmp1(a);
-  std::unordered_set<int> tmp2(b);
-  tmp1.merge(tmp2);
-  return tmp1.size() == (a.size() + b.size());
+  std::unordered_set<int> unionSet(a.begin(), a.end());
+  unionSet.insert(b.begin(), b.end());
+  return unionSet.size() == (a.size() + b.size());
 }
 
 /********************************************************************************
@@ -232,12 +233,10 @@ bool check2Sets(const std::unordered_set<int> a,
 bool check3Sets(const std::unordered_set<int> a,
                 const std::unordered_set<int> b,
                 const std::unordered_set<int> c) {
-  std::unordered_set<int> tmp1(a);
-  std::unordered_set<int> tmp2(b);
-  std::unordered_set<int> tmp3(c);
-  tmp1.merge(tmp2);
-  tmp1.merge(tmp3);
-  return tmp1.size() == (a.size() + b.size()) + c.size();
+  std::unordered_set<int> unionSet(a.begin(), a.end());
+  unionSet.insert(b.begin(), b.end());
+  unionSet.insert(c.begin(), c.end());
+  return unionSet.size() == (a.size() + b.size()) + c.size();
 }
 
 /********************************************************************************
@@ -253,14 +252,11 @@ bool check4Sets(const std::unordered_set<int> a,
                 const std::unordered_set<int> b,
                 const std::unordered_set<int> c,
                 const std::unordered_set<int> d) {
-  std::unordered_set<int> tmp1(a);
-  std::unordered_set<int> tmp2(b);
-  std::unordered_set<int> tmp3(c);
-  std::unordered_set<int> tmp4(d);
-  tmp1.merge(tmp2);
-  tmp1.merge(tmp3);
-  tmp1.merge(tmp4);
-  return tmp1.size() == (a.size() + b.size()) + c.size() + d.size();
+  std::unordered_set<int> unionSet(a.begin(), a.end());
+  unionSet.insert(b.begin(), b.end());
+  unionSet.insert(c.begin(), c.end());
+  unionSet.insert(d.begin(), d.end());
+  return unionSet.size() == a.size() + b.size() + c.size() + d.size();
 }
 
 /********************************************************************************
@@ -281,12 +277,14 @@ void check5Words(const Word &a, const Word &b, const Word &c, const Word &d,
   auto c0(c.getLetters());
   auto b0(b.getLetters());
   auto a0(a.getLetters());
-  a0.merge(b0);
-  a0.merge(c0);
-  a0.merge(d0);
-  a0.merge(e0);
-  if (a0.size() ==
-      a.getLetters().size() + b0.size() + c0.size() + d0.size() + e0.size()) {
+  std::unordered_set<int> unionSet(a0.begin(), a0.end());
+  unionSet.insert(b0.begin(), b0.end());
+  unionSet.insert(c0.begin(), c0.end());
+  unionSet.insert(d0.begin(), d0.end());
+  unionSet.insert(e0.begin(), e0.end());
+
+  if (unionSet.size() ==
+      a0.size() + b0.size() + c0.size() + d0.size() + e0.size()) {
     Solution tmp(a, b, c, d, e);
     solutions.emplace_back(tmp);
 
@@ -317,6 +315,7 @@ void initilzation(const int &argc, char *argv[], std::vector<Word> &vWords) {
   if (argc >= 3) {
     filePath = argv[2];
   }
+
   const std::string alphabet("abcdefghijklmnopqrstuvwxyz");
   charMap freqMap;
   std::string element;
@@ -326,10 +325,12 @@ void initilzation(const int &argc, char *argv[], std::vector<Word> &vWords) {
 
   std::ifstream fin(filePath.c_str());
   while (fin >> element) {
-    getFreqs(freqMap, element);
-    Word tmp(element);
-    if (tmp.getSetSize() == element.size()) {
-      vWords.emplace_back(tmp);
+    if (element.size() == 5) {
+      getFreqs(freqMap, element);
+      Word tmp(element);
+      if (tmp.getSetSize() == element.size()) {
+        vWords.emplace_back(tmp);
+      }
     }
   }
   fin.close();
