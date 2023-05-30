@@ -4,7 +4,6 @@
  *******************************************************************************/
 
 #include <algorithm>
-#include <array>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -15,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -22,7 +22,7 @@ using namespace std::chrono;
 
 typedef unsigned long ul;
 typedef std::map<int, ul> charMap;
-typedef std::vector<std::string> vSring;
+typedef std::vector<std::string> vString;
 
 class DataValidationException : public std::exception {
 public:
@@ -40,70 +40,77 @@ private:
  *******************************************************************************/
 class Word {
 private:
-  ul score; // sum of letter ranks
-  std::unordered_set<int> letters;
   std::string word;
-
-  void setLetters() {
-    letters.clear();
-    for (char c : word) {
-      letters.insert(c);
-    }
-  }
 
 public:
   Word(const std::string _word) {
     if (_word.size() != 5) {
-      throw DataValidationException("Words must be a size of 5.");
+      throw DataValidationException(" doesn't have exactly five letters.");
     }
-    score = 0;
+    std::unordered_set<int> tmp;
+    for (auto c : _word) {
+      tmp.insert(c);
+    }
+    if (tmp.size() != 5) {
+      throw DataValidationException(" doesn't have five unique letters.");
+    }
     word = _word;
-    if (letters.size() != 5)
-      throw DataValidationException("No duplicate letters allowed in a word.");
   }
 
-  std::unordered_set<int> getLetters() const { return letters; }
   const std::string getWord() const { return word; }
-  ul getScore() const { return score; }
-  ul getSetSize() { return letters.size(); }
-
-  void setScore(charMap m) {
-    score = 0;
-    for (char c : word) {
-      score += m[c];
-    }
-  }
 };
-typedef std::vector<Word> vWord;
+typedef std::unordered_map<std::string, int> mWord;
 
 /*******************************************************************************
  Solution class.
  *******************************************************************************/
 class Solution {
 public:
-  Solution(Word a, Word b, Word c, Word d, Word e) : solution{{a, b, c, d, e}} {
-    scoreSolution();
+  Solution() { reset(); }
+
+  vString getWords() {
+    vString t(words);
+    return t;
   }
+  void addWord(std::string wrd) {
+    words.push_back(wrd);
+    for (auto ch : wrd) {
+      letters.insert(ch);
+    }
+  }
+  void removeLast() {
+    std::string tmp(words.back());
+    for (auto ch : tmp) {
+      letters.erase(ch);
+    }
+  }
+  void reset() {
+    words.clear();
+    score = 0;
+    letters.clear();
+  }
+  ul wCount() { return words.size(); }
 
   std::string formatSolution() {
     std::stringstream sst;
     sst << this->score;
-    for (Word word : this->solution) {
-      sst << ' ' << word.getWord();
+    for (std::string word : this->words) {
+      sst << ' ' << word;
     }
     sst << std::endl;
     return sst.str();
   }
 
 private:
-  std::array<Word, 5> solution;
+  vString words;
   ul score;
+  std::unordered_set<int> letters;
 
   void scoreSolution() {
     score = 0;
-    for (Word word : solution) {
-      score += word.getScore();
-    }
+    // for (Word word : words) {
+    //   score += word.getScore();
+    // }
   }
 };
 typedef std::vector<Solution> vSol;
@@ -111,18 +118,12 @@ typedef std::vector<Solution> vSol;
 /*******************************************************************************
  prototypes
  *******************************************************************************/
-bool check2Sets(const std::unordered_set<int>, const std::unordered_set<int>);
-bool check3Sets(const std::unordered_set<int>, const std::unordered_set<int>,
-                const std::unordered_set<int>);
-bool check4Sets(const std::unordered_set<int>, const std::unordered_set<int>,
-                const std::unordered_set<int>, const std::unordered_set<int>);
+bool wordOK(Solution &, const std::string &);
+int scoreString(const charMap &, const std::string &);
 std::string intName(ul);
 std::string teenName(ul);
 std::string tensName(ul);
 std::string textForNumber(ul);
-void check5Words(const Word &, const Word &, const Word &, const Word &,
-                 const Word &, vSol &);
-void doInitSwitch(const int, const std::string &, vWord &);
 void format_steady_clock_duration(std::string &,
                                   const steady_clock::time_point &,
                                   const steady_clock::time_point &,
@@ -130,14 +131,15 @@ void format_steady_clock_duration(std::string &,
 void formatTime(std::string &, bool = false, bool = true);
 void getData(const std::string &);
 void getFreqs(charMap &, const std::string &);
-void initilzation(const int &, char *[], std::vector<Word> &v);
-void prependFNwithTS(const std::string &, std::string &);
-void readWordsFromStorage(const std::string &, vWord &);
-void search(std::vector<Word> &, vSol &);
+void initialzation(const int &, char *[], mWord &, charMap &);
+void prependFNwithTS(std::string &, std::string &);
+void readWordsFromStorage(const std::string &, mWord &, charMap &);
+void search(mWord &, vSol &);
 void termination(const std::chrono::steady_clock::time_point &, const vSol &);
 void textForNumberHelper(std::string &, ul);
 void writeResultsToStorage(const vSol &);
-void writeWordsWithoutDupeLetters(const std::string &, vWord &);
+void writeWordsWithoutDupeLetters(const std::string &, mWord &);
+void recursiveSearch(mWord &, Solution, vSol &);
 
 /********************************************************************************
  main
@@ -148,66 +150,97 @@ void writeWordsWithoutDupeLetters(const std::string &, vWord &);
  method:
  ********************************************************************************/
 int main(int argc, char *argv[]) {
+  int rc(0);
   auto startTime = steady_clock::now();
   std::string ts("");
   formatTime(ts, true, true);
   std::cout << ts << " \tStarting solve. This will take some time.\n";
 
-  vWord vWords;
-  vSol vResults;
+  charMap freqMap;
+  vSol solutions;
+  mWord words;
 
-  initilzation(argc, argv, vWords);
+  initialzation(argc, argv, words, freqMap);
 
   formatTime(ts, true, true);
-  std::cout << ts << " \tSearching " << vWords.size() << " words.\n";
-  search(vWords, vResults);
+  std::cout << ts << " \tSearching " << words.size() << " words.\n";
+  Solution currentSolution;
 
-  termination(startTime, vResults);
+  if (words.size() > 0) {
+    recursiveSearch(words, currentSolution, solutions);
+    termination(startTime, solutions);
+  } else {
+    rc = 42;
+  }
 
-  return 0;
+  return rc;
 }
 
 /********************************************************************************
-   search
-   gets: Word Vector address
-   Solution vector address
+   recursiveSearch
+   gets: mWord address
+         Solution
+         vSol address
    returns: nothing
-   objective: find groups of five Words where all letters are unique.
-   method: use five nested loops, pruning dupes as early as possible, to find
-   five words where all letters are unique.
+   objective: find groups of five words where all letters are unique.
+   method:  add a string (five letter word) to the current Solution. When there
+   are five strings in the current Solution, wive it to the vSol.
    ********************************************************************************/
 
-void search(vWord &vWords, vSol &vResults) {
-  steady_clock::time_point t0(steady_clock::now());
-  steady_clock::time_point t1(steady_clock::now());
-  vResults.clear();
-  std::string ts("");
-  for (auto ita(vWords.begin()); ita != vWords.end(); ita++) {
-    const auto a(ita->getLetters());
-    t1 = steady_clock::now();
-    format_steady_clock_duration(ts, t0, t1);
-    t0 = steady_clock::now();
-    std::cout << std::setw(12) << ts << std::setw(6) << ita->getWord();
-    std::cout.flush();
-    for (auto itb(ita + 1); itb != vWords.end(); itb++) {
-      const auto b(itb->getLetters());
-      if (check2Sets(b, a)) {
-        for (auto itc(itb + 1); itc != vWords.end(); itc++) {
-          const auto c(itc->getLetters());
-          if (check3Sets(a, b, c)) {
-            for (auto itd(itc + 1); itd != vWords.end(); itd++) {
-              const auto d(itd->getLetters());
-              if (check4Sets(a, b, c, d)) {
-                for (auto ite(itd + 1); ite != vWords.end(); ite++) {
-                  check5Words(*ita, *itb, *itc, *itd, *ite, vResults);
-                }
-              }
-            }
-          }
-        }
-      }
+void recursiveSearch(mWord &words, Solution currentSolution, vSol &solutions) {
+  // If the word count of the current solution is 5, then we have found a
+  // solution.
+  if (currentSolution.wCount() == 5) {
+    solutions.push_back(currentSolution);
+    currentSolution.reset();
+    return;
+  }
+
+  for (auto p : words) { // foreach element in map
+    if (wordOK(currentSolution, p.first)) {
+      currentSolution.addWord(p.first);
+      recursiveSearch(words, currentSolution, solutions);
+      currentSolution.removeLast();
     }
   }
+}
+
+/********************************************************************************
+ wordOK
+ gets: map address
+ string address
+ returns: bool
+ objective: determin if any letters on currentSolution are present in prospect
+ method: test each letter in currentSolution. if one is in the prospect, return
+ flase. Otherwise, after all words in currentSolution have been tested, return
+ true.
+ ********************************************************************************/
+
+bool wordOK(Solution &solution, const std::string &prospect) {
+  for (auto str : solution.getWords()) { // foreach word in solution
+    for (auto c : str) {  // foreach charecter in word
+      if (prospect.find(c) != std::string::npos)
+        return false;
+    }
+  }
+  return true;
+}
+
+/********************************************************************************
+ scoreString
+ gets: map address
+ string address
+ returns: int
+ objective: return the score for the given string.
+ method: accumulate the rank of each letter. return the sum.
+ ********************************************************************************/
+
+int scoreString(charMap &m, const std::string &word) {
+  int score = 0;
+  for (char c : word) {
+    score += m[c];
+  }
+  return score;
 }
 
 /********************************************************************************
@@ -225,100 +258,12 @@ void getFreqs(charMap &freqMap, const std::string &word) {
   }
 }
 
-/********************************************************************************
- check2Sets
- gets: 2 * set<int>  &
- set<int>  &
- returns: bool
- objective: test that all elements of both sets are unique
- method: merges two sets then compares sizes
- ********************************************************************************/
-
-bool check2Sets(const std::unordered_set<int> a,
-                const std::unordered_set<int> b) {
-  std::unordered_set<int> unionSet(a.begin(), a.end());
-  unionSet.insert(b.begin(), b.end());
-  return unionSet.size() == 10;
-}
-
-/********************************************************************************
- check3Sets
- gets: 3 * set<int>  &
- set<int>  &
- returns: bool
- objective: test that all elements of each set are unique
- method: merges each set then compares sizes
- ********************************************************************************/
-
-bool check3Sets(const std::unordered_set<int> a,
-                const std::unordered_set<int> b,
-                const std::unordered_set<int> c) {
-  std::unordered_set<int> unionSet(a.begin(), a.end());
-  unionSet.insert(b.begin(), b.end());
-  unionSet.insert(c.begin(), c.end());
-  return unionSet.size() == 15;
-}
-
-/********************************************************************************
- check4Sets
- gets: 4 * set<int>  &
- set<int>  &
- returns: bool
- objective: test that all elements of each set are unique
- method: merges each set then compares sizes
- ********************************************************************************/
-
-bool check4Sets(const std::unordered_set<int> a,
-                const std::unordered_set<int> b,
-                const std::unordered_set<int> c,
-                const std::unordered_set<int> d) {
-  std::unordered_set<int> unionSet(a.begin(), a.end());
-  unionSet.insert(b.begin(), b.end());
-  unionSet.insert(c.begin(), c.end());
-  unionSet.insert(d.begin(), d.end());
-  return unionSet.size() == 20;
-}
-
-/********************************************************************************
- check5Sets
- gets:  five word object addresses
-        solution vector (vSol) address
- returns: nothing
- objective: test that all letters in all word objects are unique
- method: merges all letters of given word objects into a single set. if the
- count is 25 (5x5) the tested Word objects are placed in a Solution object
- which goes to in the vSol.
- ********************************************************************************/
-
-void check5Words(const Word &a, const Word &b, const Word &c, const Word &d,
-                 const Word &e, vSol &solutions) {
-  auto e0(e.getLetters());
-  auto d0(d.getLetters());
-  auto c0(c.getLetters());
-  auto b0(b.getLetters());
-  auto a0(a.getLetters());
-  std::unordered_set<int> unionSet(a0.begin(), a0.end());
-  unionSet.insert(b0.begin(), b0.end());
-  unionSet.insert(c0.begin(), c0.end());
-  unionSet.insert(d0.begin(), d0.end());
-  unionSet.insert(e0.begin(), e0.end());
-
-  if (unionSet.size() == 25) {
-    Solution tmp(a, b, c, d, e);
-    solutions.emplace_back(tmp);
-
-    std::string ts("");
-    formatTime(ts, true, true);
-    std::cout << '\n' << ts << " \t" << tmp.formatSolution() << '\n';
-  }
-}
-
 /*******************************************************************************
- initilzation
+ initialzation
  gets: argc, argv, Word vector address
  returns: nothing (fills in word vector)
  objective: read input file (a bunch of five letter words) and builds the Word
- vector method:  initilize the frequency map open input file for each line
+ vector method:  initialize the frequency map open input file for each line
  read: augment the frequency map instanciate a set represnting the letters in
  the word if all five letters are unique: instanciate word object (set,
  string, score) emplace object on vector now that the letter frequencies are
@@ -328,90 +273,44 @@ void check5Words(const Word &a, const Word &b, const Word &c, const Word &d,
  decending
  ********************************************************************************/
 
-void initilzation(const int &argc, char *argv[], vWord &vWords) {
+void initialzation(const int &argc, char *argv[], mWord &words,
+                   charMap &freqMap) {
   std::string ts("");
   formatTime(ts, true, true);
-  int switchOn(3); // default sort option (score ascending)
 
-  std::string inFilePath(
-      "/Users/prh/code/txt/tdWords.dat"); // default file path
+  std::string iFilePath(
+      "/Users/prh/code/txt/td/tdWords.dat"); // default file path
+  if (argc >= 2) {
+    iFilePath = argv[1];
+  }
+
+  std::string oFilePath(
+      "/Users/prh/code/txt/out/wordSolutions.dat"); // default file path
   if (argc >= 3) {
-    inFilePath = argv[2];
+    oFilePath = argv[2];
   }
-
-  std::string outFilePath(
-      "/Users/prh/code/txt/wordSolutions.dat"); // default file path
-  if (argc >= 4) {
-    outFilePath = argv[3];
-  }
-  prependFNwithTS(ts, outFilePath);
+  prependFNwithTS(ts, oFilePath);
 
   std::string dupelessFilePath(
-      "/Users/prh/code/txt/dupelessWordList.txt"); // default file path
-  if (argc >= 5) {
-    dupelessFilePath = argv[4];
+      "/Users/prh/code/txt/out/dupelessWordList.txt"); // default file path
+  if (argc >= 4) {
+    dupelessFilePath = argv[3];
   }
   prependFNwithTS(ts, dupelessFilePath);
 
-  readWordsFromStorage(dupelessFilePath, vWords);
-  writeWordsWithoutDupeLetters(dupelessFilePath, vWords);
-
-  std::sort(vWords.begin(), vWords.end(),
-            [](Word &a, Word &b) { return a.getWord() > b.getWord(); });
-  auto uniqueEnd = std::unique(vWords.begin(), vWords.end(),
-                               [](const Word &obj1, const Word &obj2) {
-                                 return obj1.getWord() == obj2.getWord();
-                               });
-  vWords.erase(uniqueEnd, vWords.end());
-
-  if (argc >= 2)
-    switchOn = atoi(argv[1]);
-
-  doInitSwitch(switchOn, ts, vWords);
+  readWordsFromStorage(iFilePath, words, freqMap);
+  writeWordsWithoutDupeLetters(dupelessFilePath, words);
 }
 
-void doInitSwitch(const int sw, const std::string &ts, vWord &vWords) {
-  switch (sw) {
-  case 1:
-    std::sort(vWords.begin(), vWords.end(),
-              [](Word &a, Word &b) { return a.getWord() > b.getWord(); });
-    std::cout << ts << " \tSorted words alphabetically, descending.\n";
-    break;
-
-  case 2:
-    std::sort(vWords.begin(), vWords.end(),
-              [](Word &a, Word &b) { return a.getWord() < b.getWord(); });
-    std::cout << ts << " \tSorted words alphabetically, ascending.\n";
-    break;
-
-  case 3:
-    std::sort(vWords.begin(), vWords.end(),
-              [](Word &a, Word &b) { return a.getScore() < b.getScore(); });
-    std::cout << ts << " \tSorted words by score, ascending.\n";
-    break;
-
-  case 4:
-    std::sort(vWords.begin(), vWords.end(),
-              [](Word &a, Word &b) { return a.getScore() > b.getScore(); });
-    std::cout << ts << " \tSorted words by score, descending.\n";
-    break;
-
-  default:
-    std::mt19937 rng;
-    std::shuffle(vWords.begin(), vWords.end(), rng);
-    std::cout << ts << " \tShuffled word list.\n";
-    break;
-  }
-}
-
-void prependFNwithTS(const std::string &ts, std::string &fp) {
-  int pos(fp.find_last_of("/"));
-  if (pos == std::string::npos) {
-    fp = ts + fp;
+void prependFNwithTS(std::string &ts, std::string &fp) {
+  ts += "-";
+  auto p(fp.find_last_of("/"));
+  if (p == std::string::npos) {
+    fp = ts + "-" + fp;
   } else {
-    std::string path(fp.substr(0, pos + 1));
-    std::string name(fp.substr(pos + 1));
-    fp = path + ts + name;
+    auto tmp1(fp.substr(0, p + 1));
+    auto tmp2(fp.substr(p + 1));
+    fp = tmp1 + ts + tmp2;
   }
 }
 
@@ -432,29 +331,38 @@ void prependFNwithTS(const std::string &ts, std::string &fp) {
             set the score using the corrent frequency map
  ********************************************************************************/
 
-void readWordsFromStorage(const std::string &inFilePath, vWord &words) {
+void readWordsFromStorage(const std::string &inFilePath, mWord &words,
+                          charMap &freqMap) {
   const std::string alphabet("abcdefghijklmnopqrstuvwxyz");
-  charMap freqMap;
   std::string element;
   for (char c : alphabet) {
     freqMap[c] = 0;
   }
 
+  int cntr1(0);
+  int cntr2(0);
   std::ifstream fin(inFilePath.c_str());
   if (fin.is_open()) {
     while (fin >> element) {
+      cntr1++;
       getFreqs(freqMap, element);
       try {
         Word tmp(element);
-        words.emplace_back(tmp);
+        words[element] = 0;
       } catch (const DataValidationException &e) {
-        std::cerr << "Data validation error: " << element << " \t" << e.what()
+        cntr2++;
+        std::cerr << "Data validation error: " << element << e.what()
                   << std::endl;
       }
     }
     fin.close();
-    for (auto &word : words) {
-      word.setScore(freqMap);
+    std::string ts{""};
+    formatTime(ts, true, true);
+    std::cout << ts << " \t" << cntr1 << " lines read.\t" << words.size()
+              << " five letter words ready for algorithm.\n";
+
+    for (auto &pair : words) {
+      pair.second = scoreString(freqMap, pair.first);
     }
   }
 }
@@ -471,12 +379,12 @@ void readWordsFromStorage(const std::string &inFilePath, vWord &words) {
           close file
  ********************************************************************************/
 
-void writeWordsWithoutDupeLetters(const std::string &fp, vWord &words) {
+void writeWordsWithoutDupeLetters(const std::string &fp, mWord &words) {
   std::ofstream outputFile(fp.c_str());
 
   if (outputFile.is_open()) {
-    for (const auto &word : words) {
-      outputFile << word.getWord() << '\n';
+    for (const auto &pair : words) {
+      outputFile << pair.first << '\n';
     }
 
     outputFile.close(); // Close the file
@@ -582,7 +490,7 @@ void termination(const steady_clock::time_point &startTime,
   std::cout << '\n' << ts << " \t" << durStr << '\n';
 
   formatTime(ts, true, true);
-  std::cout << ts << " \tString search complete. Solutions listed: "
+  std::cout << ts << " \tString search complete. Solutions identified: "
             << vResults.size() << ".\n";
 }
 
@@ -614,7 +522,7 @@ void formatTime(std::string &tms, bool doDate, bool doTime) {
   }
 
   if (doTime) {
-    strftime(buffer, 80, "%H:%M:%S", timeinfo);
+    strftime(buffer, 80, "%H_%M_%S", timeinfo);
     sst << buffer;
   }
   tms = sst.str();
