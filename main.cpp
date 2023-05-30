@@ -101,7 +101,7 @@ private:
 
   void scoreSolution() {
     score = 0;
-    for (auto word : solution) {
+    for (Word word : solution) {
       score += word.getScore();
     }
   }
