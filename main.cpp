@@ -19,9 +19,10 @@
 #include <utility>
 #include <vector>
 
-const int SOLUTION_SIZE(5); // number of letters in word, words in solution
-
 using namespace std::chrono;
+
+const int SOLUTION_SIZE(5); // number of letters in word, words in solution
+const auto START_TIME(steady_clock::now());
 
 typedef unsigned long ul;
 typedef std::unordered_map<int, ul> mChar;
@@ -136,6 +137,7 @@ class Solution {
 private:
   sWord wordCollection;
   int score;
+  ul dur;
   std::unordered_set<int> letters; // all letters in solution
 
   void removeContentsFromLetters(std::string lttrs) {
@@ -163,9 +165,14 @@ public:
 
   sWord getWordCollection() { return wordCollection; }
 
+  void setDur() {
+    auto tmp(steady_clock::now() - START_TIME);
+    dur = duration_cast<milliseconds>(tmp).count();
+  }
+
   std::string formatSolution() {
     std::stringstream sst;
-    sst << this->score;
+    sst << this->dur << ' ' << this->score;
     for (auto aWord : this->wordCollection) {
       sst << ' ' << aWord.getWord();
     }
@@ -198,6 +205,7 @@ public:
     letters.clear();
     wordCollection.clear();
     score = 0;
+    dur = 0;
   }
 
   ul scoreWord(std::string wrd, mChar freqMap) {
@@ -303,6 +311,7 @@ void pushCurrentSolutionOnSolutions(const mChar &freqMap, vSol &solutions,
     solutionIDSet.insert(
         currentSolution.getWordCollection()); // save solution ID
     currentSolution.setScore(freqMap);
+    currentSolution.setDur();
     solutions.emplace_back(currentSolution);
     std::string ts("");
     formatTime(ts);
@@ -495,8 +504,8 @@ void readWordsFromStorage(const std::string &inFilePath, vWord &words,
  vWord address
  returns: nothing
  objective:  put a list of solutionSize letter words with no duplicate letters
- to storage 
- method:  opens outfile for each word: write a record close file when last word 
+ to storage
+ method:  opens outfile for each word: write a record close file when last word
           is written.
  ********************************************************************************/
 
