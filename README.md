@@ -62,8 +62,7 @@ The program requires the following C++ libraries:
 - `<unordered_set>`
 - `<vector>`
 
-### Notes
 
-- The program uses a pseudorandom number generator to determine the sorting option for the word list if no command-line argument is provided.
+### Notes
 
 Feel free to explore the source code for more details and customization options.
