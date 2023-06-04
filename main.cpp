@@ -1,7 +1,27 @@
-
 /*******************************************************************************
- Make a solutionSizex5 grid with 25 unique chars using words from text file.
- *******************************************************************************/
+This program is designed to generate a grid of unique characters using words
+from a text file. The grid is of size SOLUTION_SIZE x 5, where SOLUTION_SIZE is
+a constant defined in the program.
+
+The program reads in a list of words from a specified text file, validates them,
+and then uses them to construct potential solutions. Each solution is a
+collection of words that together contain all unique characters. The words are
+scored based on the frequency of their constituent characters in the input file,
+and the solutions are scored as the sum of their words' scores.
+
+The program uses a recursive search algorithm to explore all possible
+combinations of words to form solutions. It ensures that each solution contains
+unique characters and meets the size requirements.
+
+The program also includes functionality for handling data validation errors and
+solution exceptions, and for outputting the identified solutions to a storage
+file.
+
+The program is written in C++ and makes use of several standard libraries,
+including <algorithm>, <cctype>, <chrono>, <fstream>, <iomanip>, <ios>,
+<iostream>, <set>, <sstream>, <stdexcept>, <string>, <unordered_map>,
+<unordered_set>, <utility>, and <vector>.
+*******************************************************************************/
 
 #include <algorithm>
 #include <cctype>
@@ -172,11 +192,11 @@ public:
 
   std::string formatSolution() {
     std::stringstream sst;
-    sst << this->dur << ' ' << this->score;
+    sst << this->score;
     for (auto aWord : this->wordCollection) {
       sst << ' ' << aWord.getWord();
     }
-    sst << std::endl;
+    sst << ' ' << this->dur << std::endl;
     return sst.str();
   }
 
@@ -432,7 +452,7 @@ void prependFNwithTS(std::string &ts, std::string &fp) {
 /*******************************************************************************
  readWordsFromStorage
  gets:  string address
- vWord address
+ sWord address
  returns: nothing
  objective: get the word list from storage
  fill the vector with new Word objects
@@ -501,7 +521,7 @@ void readWordsFromStorage(const std::string &inFilePath, vWord &words,
 /*******************************************************************************
  writeWordsWithoutDupeLetters
  gets:  string address
- vWord address
+ sWord address
  returns: nothing
  objective:  put a list of solutionSize letter words with no duplicate letters
  to storage
@@ -663,112 +683,3 @@ void makeLowercase(std::string &str) {
   std::transform(str.begin(), str.end(), str.begin(),
                  [](unsigned char c) { return std::tolower(c); });
 }
-
-/*
-Here are the spelling and grammar errors, as well as inconsistencies between
-comments and code, that I found in the provided `main.cpp` file:
-
-1. In the comment for the `pushCurrentSolutionOnSolutions` function, there is a
-typo in the phrase "wive it to the vSol". It should be "give it to the vSol".
-
-2. In the comment for the `recursiveSearch` function, the phrase "find groups of
-five words where all letters are unique" might be more accurately written as
-"find groups of five words in which all letters are unique".
-
-3. In the comment for the `augmentFreqMap` function, the phrase "accumulate
-letter occurances" has a spelling error. The correct spelling is "occurrences".
-
-4. In the comment for the `initialzation` function, the word "initialzation" is
-misspelled. The correct spelling is "initialization". Also, the phrase
-"ascebding" is a typo. It should be "ascending".
-
-5. In the comment for the `prependFNwithTS` function, the phrase "make time
-stamp first part of file name" could be more accurately written as "make the
-timestamp the first part of the file name".
-
-6. In the comment for the `readWordsFromStorage` function, the phrase "get word
-list from storage" could be more accurately written as "get the word list from
-storage".
-
-7. In the comment for the `writeWordsWithoutDupeLetters` function, the phrase
-"put a list of solutionSize letter words with no duplicate letters to storage"
-could be more accurately written as "write a list of solutionSize letter words
-with no duplicate letters to storage".
-
-8. In the comment for the `writeResultsToStorage` function, the phrase "put
-solutions out to storage" could be more accurately written as "write solutions
-to storage".
-
-9. In the comment for the `formatSteadyClockDuration` function, the phrase "The
-string is filled in with the two given time points" could be more accurately
-written as "The string is filled with the duration between the two given time
-points".
-
-10. In the comment for the `termination` function, the phrase "alerts operator
-that this job ended normally" could be more accurately written as "alerts the
-operator that this job ended normally".
-
-11. In the comment for the `formatTime` function, the phrase "provide formatted
-date or time" could be more accurately written as "provides a formatted date or
-time".
-
-12. In the `initialzation` function, the variable `iFilePath` and `oFilePath`
-have hardcoded file paths. This could be a potential inconsistency if the file
-paths are different in the user's environment.
-
-13. In the `writeWordsWithoutDupeLetters` function, the comment says it writes
-words without duplicate letters, but the function doesn't seem to check for
-duplicate letters in the words. It just writes all the words to the file.
-
-14. In the `pushCurrentSolutionOnSolutions` function, the comment says it
-displays the solution, but the function doesn't seem to have any code for
-displaying the solution.
-
-15. In the `recursiveSearch` function, the comment says it finds groups of five
-words where all letters are unique, but the function doesn't seem to have any
-code for checking the uniqueness of letters in the words.
-
-16. In the `augmentFreqMap` function, the comment says it accumulates letter
-occurrences, but the function doesn't seem to have any code for accumulating
-letter occurrences.
-
-17. In the `initialzation` function, the comment says it reads the input file
-and builds the Word vector, but the function doesn't seem to have any code for
-building the Word vector.
-
-18
-
-18. In the `prependFNwithTS` function, the comment says it makes the timestamp
-the first part of the file name, but the function doesn't seem to have any code
-for making the timestamp the first part of the file name.
-
-19. In the `readWordsFromStorage` function, the comment says it gets the word
-list from storage and fills in the word vector, but the function doesn't seem to
-have any code for filling in the word vector.
-
-20. In the `writeWordsWithoutDupeLetters` function, the comment says it writes a
-list of solutionSize letter words with no duplicate letters to storage, but the
-function doesn't seem to have any code for checking if the words have duplicate
-letters before writing them to storage.
-
-21. In the `writeResultsToStorage` function, the comment says it writes
-solutions to storage, but the function doesn't seem to have any code for writing
-solutions to storage.
-
-22. In the `formatSteadyClockDuration` function, the comment says it fills the
-string with the duration between the two given time points, but the function
-doesn't seem to have any code for calculating the duration between the two time
-points.
-
-23. In the `termination` function, the comment says it alerts the operator that
-this job ended normally, but the function doesn't seem to have any code for
-alerting the operator.
-
-24. In the `formatTime` function, the comment says it provides a formatted date
-or time, but the function doesn't seem to have any code for formatting the date
-or time.
-
-Please note that these are potential issues based on the comments and the code
-provided. The actual functionality of the code might still be correct depending
-on the rest of the code and the context in which these functions are used.
-*/
