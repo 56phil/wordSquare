@@ -114,18 +114,16 @@ template <> struct hash<Word> {
 } // namespace std
 
 namespace std {
-    template<>
-    struct hash<unordered_set<Word>> {
-        size_t operator()(const unordered_set<Word>& set) const {
-            size_t seed = set.size();
-            for(const auto& elem : set) {
-                seed ^= hash<Word>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-            }
-            return seed;
-        }
-    };
-}
-
+template <> struct hash<unordered_set<Word>> {
+  size_t operator()(const unordered_set<Word> &set) const {
+    size_t seed = set.size();
+    for (const auto &elem : set) {
+      seed ^= hash<Word>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
+};
+} // namespace std
 
 typedef std::unordered_set<Word> sWord;
 typedef std::unordered_set<sWord> ussWord;
@@ -232,7 +230,7 @@ void formatSteadyClockDuration(std::string &, const steady_clock::time_point &,
 void formatTime(std::string &, bool = true, bool = true);
 void getData(const std::string &);
 void augmentFreqMap(mChar &, const std::string &);
-void initialzation(const int &, char *[], vWord &, mChar &);
+void initialization(const int &, char *[], vWord &, mChar &);
 void makeLowercase(std::string &str);
 void prependFNwithTS(std::string &, std::string &);
 void pushCurrentSolutionOnSolutions(const mChar &, vSol &, Solution &,
@@ -258,9 +256,9 @@ int main(int argc, char *argv[]) {
   formatTime(ts);
   std::cout << ts << " \tStarting solve. This will take some time.\n";
 
-  mChar freqMap;    // frequencies of each letter
-  vSol solutions;   // all identified solutions
-  vWord words; // Word objects from input file
+  mChar freqMap;  // frequencies of each letter
+  vSol solutions; // all identified solutions
+  vWord words;    // Word objects from input file
   ussWord solutionSets;
 
   freqMap.clear();
@@ -268,14 +266,13 @@ int main(int argc, char *argv[]) {
   words.clear();
   solutionSets.clear();
 
-  initialzation(argc, argv, words, freqMap);
+  initialization(argc, argv, words, freqMap);
 
   Solution currentSolution; // temporary woekspace
   currentSolution.reset();
 
   if (words.size() > 0) {
-    recursiveSearch(words, currentSolution, solutions, freqMap,
-                    solutionSets);
+    recursiveSearch(words, currentSolution, solutions, freqMap, solutionSets);
     termination(startTime, solutions);
   } else {
     rc = 42;
@@ -295,8 +292,7 @@ int main(int argc, char *argv[]) {
  returns: nothing
  objective: 1) score currentSolution 2) put on the vector 3) display solution
             4) get current solution ready for next one.
- method:  add a string (five letter word) to the current Solution. When there
- are five strings in the current Solution, give it to the vSol.
+ method:  add an ordered set to solutionIDSet if it is unique.
  ********************************************************************************/
 
 void pushCurrentSolutionOnSolutions(const mChar &freqMap, vSol &solutions,
@@ -317,14 +313,14 @@ void pushCurrentSolutionOnSolutions(const mChar &freqMap, vSol &solutions,
 
 /********************************************************************************
  recursiveSearch
- gets:  mWord address   all words that may form a solution
+ gets:  mWord address   all Word objectss that may compose a solution
         Solution        current solution
         vSol address    solution vector
-        sSol address    one element foreach solution
+        sSol address    one five word set foreach solution
  returns: nothing
- objective: find groups of five words where all letters are unique.
- method:  add a string (five letter word) to the current Solution. When there
- are five strings in the current Solution, wive it to the vSol.
+ objective: find five word sets where all letters are unique.
+ method:  add a word (five letter string) to the current Solution. When there
+ are five strings in the current Solution, give it to the solution vector.
  ********************************************************************************/
 
 void recursiveSearch(vWord &words, Solution &currentSolution, vSol &solutions,
@@ -349,8 +345,9 @@ void recursiveSearch(vWord &words, Solution &currentSolution, vSol &solutions,
  gets: mChar address
        string address
  returns: nothing
- objective: accumulate letter occurances
- method: using each letter from word, adds one to corresponding letter in map
+ objective: accumulate letter occurences
+ method: using each letter from word, increment the counter associated with that
+ character,
  ********************************************************************************/
 
 void augmentFreqMap(mChar &freqMap, const std::string &aString) {
@@ -360,7 +357,7 @@ void augmentFreqMap(mChar &freqMap, const std::string &aString) {
 }
 
 /*******************************************************************************
- initialzation
+ initialization
  gets: argc, argv, Word vector address
  returns: nothing (fills in word vector)
  objective: read input file (a bunch of five letter words) and builds the Word
@@ -369,11 +366,11 @@ void augmentFreqMap(mChar &freqMap, const std::string &aString) {
  the word if all five letters are unique: instanciate word object (set,
  string, score) emplace object on vector now that the letter frequencies are
  built: traverse the Word vector scoring all words sort the Word objects by
- score, ascebding
+ score, ascending
  ********************************************************************************/
 
-void initialzation(const int &argc, char *argv[], vWord &words,
-                   mChar &freqMap) {
+void initialization(const int &argc, char *argv[], vWord &words,
+                    mChar &freqMap) {
   std::string ts("");
   formatTime(ts);
 
@@ -408,7 +405,7 @@ void initialzation(const int &argc, char *argv[], vWord &words,
  gets:  string address
         string address
  returns: nothing
- objective: make time stamp first part of file name.
+ objective: make a timestamp the first part of the file name.
  method: find position of filename
          when entire string os file name, place time stamp in front of file name
          otherwise, insert timestamp after last '/'
@@ -428,7 +425,7 @@ void prependFNwithTS(std::string &ts, std::string &fp) {
  gets:  string address
  vWord address
  returns: nothing
- objective: get word list from storage
+ objective: get the word list from storage
  fill the vector with new Word objects
  method:  initializes frequency map
  opens input file
@@ -497,8 +494,10 @@ void readWordsFromStorage(const std::string &inFilePath, vWord &words,
  gets:  string address
  vWord address
  returns: nothing
- objective: put a list of solutionSize letter words with no duplicate letters to
- storage method:  opens outfile for each word: write a record close file
+ objective:  put a list of solutionSize letter words with no duplicate letters
+ to storage 
+ method:  opens outfile for each word: write a record close file when last word 
+          is written.
  ********************************************************************************/
 
 void writeWordsWithoutDupeLetters(const std::string &fp, vWord &words) {
@@ -655,3 +654,112 @@ void makeLowercase(std::string &str) {
   std::transform(str.begin(), str.end(), str.begin(),
                  [](unsigned char c) { return std::tolower(c); });
 }
+
+/*
+Here are the spelling and grammar errors, as well as inconsistencies between
+comments and code, that I found in the provided `main.cpp` file:
+
+1. In the comment for the `pushCurrentSolutionOnSolutions` function, there is a
+typo in the phrase "wive it to the vSol". It should be "give it to the vSol".
+
+2. In the comment for the `recursiveSearch` function, the phrase "find groups of
+five words where all letters are unique" might be more accurately written as
+"find groups of five words in which all letters are unique".
+
+3. In the comment for the `augmentFreqMap` function, the phrase "accumulate
+letter occurances" has a spelling error. The correct spelling is "occurrences".
+
+4. In the comment for the `initialzation` function, the word "initialzation" is
+misspelled. The correct spelling is "initialization". Also, the phrase
+"ascebding" is a typo. It should be "ascending".
+
+5. In the comment for the `prependFNwithTS` function, the phrase "make time
+stamp first part of file name" could be more accurately written as "make the
+timestamp the first part of the file name".
+
+6. In the comment for the `readWordsFromStorage` function, the phrase "get word
+list from storage" could be more accurately written as "get the word list from
+storage".
+
+7. In the comment for the `writeWordsWithoutDupeLetters` function, the phrase
+"put a list of solutionSize letter words with no duplicate letters to storage"
+could be more accurately written as "write a list of solutionSize letter words
+with no duplicate letters to storage".
+
+8. In the comment for the `writeResultsToStorage` function, the phrase "put
+solutions out to storage" could be more accurately written as "write solutions
+to storage".
+
+9. In the comment for the `formatSteadyClockDuration` function, the phrase "The
+string is filled in with the two given time points" could be more accurately
+written as "The string is filled with the duration between the two given time
+points".
+
+10. In the comment for the `termination` function, the phrase "alerts operator
+that this job ended normally" could be more accurately written as "alerts the
+operator that this job ended normally".
+
+11. In the comment for the `formatTime` function, the phrase "provide formatted
+date or time" could be more accurately written as "provides a formatted date or
+time".
+
+12. In the `initialzation` function, the variable `iFilePath` and `oFilePath`
+have hardcoded file paths. This could be a potential inconsistency if the file
+paths are different in the user's environment.
+
+13. In the `writeWordsWithoutDupeLetters` function, the comment says it writes
+words without duplicate letters, but the function doesn't seem to check for
+duplicate letters in the words. It just writes all the words to the file.
+
+14. In the `pushCurrentSolutionOnSolutions` function, the comment says it
+displays the solution, but the function doesn't seem to have any code for
+displaying the solution.
+
+15. In the `recursiveSearch` function, the comment says it finds groups of five
+words where all letters are unique, but the function doesn't seem to have any
+code for checking the uniqueness of letters in the words.
+
+16. In the `augmentFreqMap` function, the comment says it accumulates letter
+occurrences, but the function doesn't seem to have any code for accumulating
+letter occurrences.
+
+17. In the `initialzation` function, the comment says it reads the input file
+and builds the Word vector, but the function doesn't seem to have any code for
+building the Word vector.
+
+18
+
+18. In the `prependFNwithTS` function, the comment says it makes the timestamp
+the first part of the file name, but the function doesn't seem to have any code
+for making the timestamp the first part of the file name.
+
+19. In the `readWordsFromStorage` function, the comment says it gets the word
+list from storage and fills in the word vector, but the function doesn't seem to
+have any code for filling in the word vector.
+
+20. In the `writeWordsWithoutDupeLetters` function, the comment says it writes a
+list of solutionSize letter words with no duplicate letters to storage, but the
+function doesn't seem to have any code for checking if the words have duplicate
+letters before writing them to storage.
+
+21. In the `writeResultsToStorage` function, the comment says it writes
+solutions to storage, but the function doesn't seem to have any code for writing
+solutions to storage.
+
+22. In the `formatSteadyClockDuration` function, the comment says it fills the
+string with the duration between the two given time points, but the function
+doesn't seem to have any code for calculating the duration between the two time
+points.
+
+23. In the `termination` function, the comment says it alerts the operator that
+this job ended normally, but the function doesn't seem to have any code for
+alerting the operator.
+
+24. In the `formatTime` function, the comment says it provides a formatted date
+or time, but the function doesn't seem to have any code for formatting the date
+or time.
+
+Please note that these are potential issues based on the comments and the code
+provided. The actual functionality of the code might still be correct depending
+on the rest of the code and the context in which these functions are used.
+*/
