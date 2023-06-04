@@ -94,21 +94,41 @@ public:
   std::string getWord() const { return word; }
 
   int getScore() const { return score; }
+
+  bool operator==(const Word &other) const {
+    return word == other.word && score == other.score;
+  }
+  bool operator<(const Word &other) const {
+    return word < other.word && score < other.score;
+  }
 };
 
 namespace std {
+template <> struct hash<Word> {
+  std::size_t operator()(const Word &w) const {
+    std::size_t h1 = std::hash<std::string>()(w.getWord());
+    std::size_t h2 = std::hash<int>()(w.getScore());
+    return h1 ^ h2;
+  }
+};
+} // namespace std
+
+namespace std {
     template<>
-    struct hash<Word> {
-        std::size_t operator()(const Word& w) const {
-            std::size_t h1 = std::hash<std::string>()(w.getWord());
-            std::size_t h2 = std::hash<int>()(w.getScore());
-            return h1 ^ h2;
+    struct hash<unordered_set<Word>> {
+        size_t operator()(const unordered_set<Word>& set) const {
+            size_t seed = set.size();
+            for(const auto& elem : set) {
+                seed ^= hash<Word>{}(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+            return seed;
         }
     };
 }
 
-typedef std::set<Word> sWord;
-typedef std::set<sWord> ssWord;
+
+typedef std::unordered_set<Word> sWord;
+typedef std::unordered_set<sWord> ussWord;
 typedef std::vector<Word> vWord;
 
 /*******************************************************************************
@@ -216,12 +236,12 @@ void initialzation(const int &, char *[], vWord &, mChar &);
 void makeLowercase(std::string &str);
 void prependFNwithTS(std::string &, std::string &);
 void pushCurrentSolutionOnSolutions(const mChar &, vSol &, Solution &,
-                                    ssWord &);
-void readWordsFromStorage(const std::string &, sWord &, mChar &);
+                                    ussWord &);
+void readWordsFromStorage(const std::string &, vWord &, mChar &);
 void termination(const steady_clock::time_point &, vSol &);
 void writeResultsToStorage(const vSol &);
-void writeWordsWithoutDupeLetters(const std::string &, sWord &);
-void recursiveSearch(vWord &, Solution &, vSol &, const mChar &, ssWord &);
+void writeWordsWithoutDupeLetters(const std::string &, vWord &);
+void recursiveSearch(vWord &, Solution &, vSol &, const mChar &, ussWord &);
 
 /********************************************************************************
  main
@@ -240,21 +260,21 @@ int main(int argc, char *argv[]) {
 
   mChar freqMap;    // frequencies of each letter
   vSol solutions;   // all identified solutions
-  vWord wordVector; // Word objects from input file
-  ssWord solutionSets;
+  vWord words; // Word objects from input file
+  ussWord solutionSets;
 
   freqMap.clear();
   solutions.clear();
-  wordVector.clear();
+  words.clear();
   solutionSets.clear();
 
-  initialzation(argc, argv, wordVector, freqMap);
+  initialzation(argc, argv, words, freqMap);
 
   Solution currentSolution; // temporary woekspace
   currentSolution.reset();
 
-  if (wordVector.size() > 0) {
-    recursiveSearch(wordVector, currentSolution, solutions, freqMap,
+  if (words.size() > 0) {
+    recursiveSearch(words, currentSolution, solutions, freqMap,
                     solutionSets);
     termination(startTime, solutions);
   } else {
@@ -281,7 +301,7 @@ int main(int argc, char *argv[]) {
 
 void pushCurrentSolutionOnSolutions(const mChar &freqMap, vSol &solutions,
                                     Solution &currentSolution,
-                                    ssWord &solutionIDSet) {
+                                    ussWord &solutionIDSet) {
 
   if (solutionIDSet.count(currentSolution.getWordCollection()) == 0) {
     solutionIDSet.insert(
@@ -308,7 +328,7 @@ void pushCurrentSolutionOnSolutions(const mChar &freqMap, vSol &solutions,
  ********************************************************************************/
 
 void recursiveSearch(vWord &words, Solution &currentSolution, vSol &solutions,
-                     const mChar &freqMap, ssWord &solutionIDSet) {
+                     const mChar &freqMap, ussWord &solutionIDSet) {
   for (auto &aWord : words) { // foreach word in vector
     if (currentSolution.isSolved()) {
       pushCurrentSolutionOnSolutions(freqMap, solutions, currentSolution,
@@ -352,7 +372,7 @@ void augmentFreqMap(mChar &freqMap, const std::string &aString) {
  score, ascebding
  ********************************************************************************/
 
-void initialzation(const int &argc, char *argv[], sWord &words,
+void initialzation(const int &argc, char *argv[], vWord &words,
                    mChar &freqMap) {
   std::string ts("");
   formatTime(ts);
@@ -457,9 +477,9 @@ void readWordsFromStorage(const std::string &inFilePath, vWord &words,
       }
     }
 
-    // std::sort(words.begin(), words.end(), [](const Word &a, const Word &b) {
-    //   return a.getScore() < b.getScore();
-    // });
+    std::sort(words.begin(), words.end(), [](const Word &a, const Word &b) {
+      return a.getScore() < b.getScore();
+    });
 
     formatTime(ts);
     std::cout << ts << " \tLines read: " << linesRead
